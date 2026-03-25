@@ -1,6 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import relationship
+from typing import List
+from sqlalchemy import ForeignKey
 
 db = SQLAlchemy()
 
@@ -29,6 +32,14 @@ class User(db.Model):
     descripción: Mapped[str] = mapped_column(nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
 
+    posts: Mapped[List["Post"]] = relationship(back_populates="user")
+    seguidos: Mapped[List["Follower"]] = relationship(back_populates="user")
+    seguidores: Mapped[List["Follower"]] = relationship(back_populates="user")
+    coment: Mapped[List["Coment"]] = relationship(back_populates="coment")
+    interaction: Mapped[List["Interaction"]] = relationship(back_populates="interaction")
+    reciever: Mapped[List["Dm"]] = relationship(back_populates="user")
+    sender: Mapped[List["Dm"]] = relationship(back_populates="user")
+
     def serialize(self):
         return {
             "id": self.id,
@@ -39,8 +50,12 @@ class User(db.Model):
 class Coment(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     texto: Mapped[str] = mapped_column(nullable=False)
-    user_id: Mapped[int] = mapped_column(primary_key=True)
-    post_id: Mapped[int] = mapped_column(primary_key=True)
+    
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="coment")
+
+    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"))
+    post: Mapped["Post"] = relationship(back_populates="coment")
 
 
     def serialize(self):
@@ -55,8 +70,12 @@ class Interaction(db.Model):
     likes: Mapped[bool] = mapped_column(Boolean(), nullable=False)
     saved: Mapped[bool] = mapped_column(Boolean(), nullable=False)
     shrared: Mapped[bool] = mapped_column(Boolean(), nullable=False)
-    user_id: Mapped[int] = mapped_column(primary_key=True)
-    post_id: Mapped[int] = mapped_column(primary_key=True)
+    
+    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"))
+    post: Mapped["Post"] = relationship(back_populates="interaction")
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="interaction")
 
     def serialize(self):
         return {
@@ -68,7 +87,13 @@ class Post(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     publicacion: Mapped[str] = mapped_column(nullable=False)
     comentario: Mapped[str] = mapped_column(nullable=False)
-    user_id: Mapped[int] = mapped_column(primary_key=True)
+
+    coment: Mapped[List["Coment"]] = relationship(back_populates="post")
+    
+    interaction: Mapped[List["Interaction"]] = relationship(back_populates="post")
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="posts")
 
 
     def serialize(self):
@@ -81,9 +106,12 @@ class Post(db.Model):
 class Dm(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     mensaje: Mapped[str] = mapped_column(nullable=False)
-    reciever_id: Mapped[int] = mapped_column(primary_key=True)
-    sender_id: Mapped[int] = mapped_column(primary_key=True)
+    
+    sender_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="dm")
 
+    receiver_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="dm")
 
     def serialize(self):
         return {
@@ -91,10 +119,14 @@ class Dm(db.Model):
             # do not serialize the password, its a security breach
         }
 
-class Followers(db.Model):
+class Follower(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    seguido_id: Mapped[int] = mapped_column(primary_key=True)
-    seguidores_id: Mapped[int] = mapped_column(primary_key=True)
+
+    seguido_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="seguidos")
+    
+    seguidor_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="seguidores")
 
 
     def serialize(self):
